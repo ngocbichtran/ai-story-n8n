@@ -1,0 +1,16 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+
+    ports:
+      - "3000:5678"
+
+    environment:
+      - N8N_HOST=n8n.baostory.fun
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://n8n.baostory.fun:3000
+
+    volumes:
+      - ./n8n_data:/home/node/.n8n
