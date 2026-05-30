@@ -1,0 +1,1119 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Bạn là AI chuyên xây dựng cốt truyện tiểu thuyết.\n\nHãy tạo outline chi tiết cho truyện sau:\n\nTiêu đề:\n{{ $('CREATE STORY + GENERATE OUTLINE PREVIEW').item.json.body.title }}\nÝ tưởng:\n{{ $('CREATE STORY + GENERATE OUTLINE PREVIEW').item.json.body.idea }}\n\nThể loại:\n{{ $('IF NOT EMPTY').item.json.body.genre }}\n\nYêu cầu:\n- Tạo theo cấu trúc nhiều arc\n- Có mở đầu, phát triển, cao trào, kết thúc\n- Giữ tính logic và nhất quán\n- Văn phong sáng tạo, hấp dẫn\n- Không quá ngắn\n\nOutput format:\n\n# Opening\n...\n\n# Arc 1\n...\n\n# Arc 2\n...\n\n# Climax\n...\n\n# Ending\n...",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        336,
+        -16
+      ],
+      "id": "1eca6519-7d85-4844-b0c0-3a0f97075a45",
+      "name": "Generate Outline"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Bạn là một nhà văn mạng có lối viết lôi cuốn. Hãy dựa vào bản Dàn ý (Outline) thô dưới đây để chấp bút viết thành một chương truyện hoàn chỉnh, chi tiết và sinh động.\n\n[BẢN OUTLINE HƯỚNG DẪN]:\n{{ $('Save Outline').item.json.outline_content }}\n\n[YÊU CẦU TÁC PHẨM]:\n- Viết chi tiết, mô tả kỹ bối cảnh, hành động và lời thoại của các nhân vật (không viết tóm tắt).\n- Bám sát thể loại({{ $('IF NOT EMPTY').item.json.body.genre }}) và các tình tiết đã vạch ra trong outline.\n- Triển khai mạch truyện mạch lạc, cuốn hút từ đầu đến cuối chương.\n- memory: {{ $json.memory_content }}\nKhông quá dài.\nChương truyện hoàn chỉnh:",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3216,
+        -32
+      ],
+      "id": "15b6aaf2-9d65-4666-8eae-1b5363a8db6f",
+      "name": "Generate Detail Story"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "stories",
+          "mode": "name"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "=user_id",
+              "value": "={{$json.body.user_id}}"
+            },
+            {
+              "column": "=title",
+              "value": "={{$json.body.title}}"
+            },
+            {
+              "column": "=description",
+              "value": "={{ $json.body.idea }}"
+            },
+            {
+              "column": "=cover_image"
+            },
+            {
+              "column": "=status",
+              "value": "DRAFT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "712c0bce-6ea1-4591-8c63-e579b88796ff",
+      "name": "Create Story",
+      "credentials": {
+        "mySql": {
+          "id": "si1FSUpsy2qIMAB3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "story_outlines",
+        "fields": "story_id,outline_content",
+        "options": {
+          "dateFields": ""
+        }
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        -32
+      ],
+      "id": "1da07757-a355-4d85-948f-c764421b4c25",
+      "name": "Save Outline",
+      "credentials": {
+        "mongoDb": {
+          "id": "x0Pl0DPDD3kfSNgi",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "13b8bef3-0afb-4de5-b36b-8f4f88022ca7",
+              "name": "story_id",
+              "value": "={{ $('IF NOT EMPTY').item.json.body.story_id }}",
+              "type": "number"
+            },
+            {
+              "id": "570e9cac-5cc7-400f-81b9-be95cd7a9330",
+              "name": "outline_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        -32
+      ],
+      "id": "000a4bc2-3604-4811-b58f-031e4475dabc",
+      "name": "Set Field For Mongo"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        128
+      ],
+      "id": "941deb48-14f6-48cd-b366-ed3ea947c9f0",
+      "name": "Gemini-3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sRUJqDFnY1QGPgE0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-story",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "fcb876b8-bfd6-41e3-8124-0c335ad2d095",
+      "name": "CREATE STORY + GENERATE OUTLINE PREVIEW",
+      "webhookId": "79acd935-43b4-43b9-b191-19b55824ade0"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Title or idea is required\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        160,
+        176
+      ],
+      "id": "f5be64c0-6ff7-467c-8462-b8faa85fffcb",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4125d6b9-8ef0-485c-8b72-16b3b86fdcd8",
+              "leftValue": "={{ $('IF NOT EMPTY').item.json.body.accept_outline }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        768,
+        -16
+      ],
+      "id": "89d6c4ec-881c-4c62-874f-64c4a69e7b29",
+      "name": "IF ACCEPT OUTLINE"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3916432f-a95c-4866-bbfe-0ad02b24a5ea",
+              "leftValue": "={{ $json.body.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a8ca6409-7ddf-4579-ae5d-d2b9d2aed167",
+              "leftValue": "={{ $json.body.idea }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "9a0bb40a-ff47-4caf-8423-55994bb68dd0",
+      "name": "IF NOT EMPTY"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Bạn là một chuyên gia thiết kế database kiêm nhà biên kịch. Nhiệm vụ của bạn là tạo ra)  danh sách các nhân vật dựa trên các cột thuộc tính được cung cấp dưới đây.\n\nThông tin bộ truyện/game:\n- Tên truyện:{{ $('IF NOT EMPTY').item.json.body.title }}\n- Thể loại/Bối cảnh: {{ $('IF NOT EMPTY').item.json.body.genre }}\n\nDanh sách các cột trong bảng database cần sinh dữ liệu:\n[Dán danh sách cột của bạn vào đây. Ví dụ:\n- story_id: {{ $json.story_id }}\n- name: Tên nhân vật\n- role_name: Vai trò nhân vật\n- personality: Tính cách\n- background_story: Cốt truyện/Tiểu sử\n- skills: Kỹ năng đặc biệt\n- avatar_url: Để chuỗi trống \"\"\n]\n\nYêu cầu đầu ra:\n2. Nội dung các trường dữ liệu phải sáng tạo, hấp dẫn, logic với bối cảnh truyện và khớp hoàn toàn với mô tả của từng cột.\n3. Trả về kết quả DUY NHẤT dưới dạng một Mảng JSON (JSON Array), không kèm theo lời chào, lời giải thích hay bất kỳ ký tự thừa nào bên ngoài khối JSON để tôi có thể dùng lập trình parse được ngay.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1440,
+        -32
+      ],
+      "id": "a5745776-3edd-4d52-b645-9a4c9ee69156",
+      "name": "GENERATE CHARACTERS"
+    },
+    {
+      "parameters": {
+        "jsCode": "const characters = JSON.parse($json.text);\n\nreturn characters.map(character => ({\n  json: character\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        -32
+      ],
+      "id": "ef934438-0a62-44a3-948d-146f1aec8c0a",
+      "name": "PARSE CHARACTERS"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "story_characters",
+          "mode": "list",
+          "cachedResultName": "story_characters"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "story_id",
+              "value": "={{ $('Set Field For Mongo').item.json.story_id }}"
+            },
+            {
+              "column": "name",
+              "value": "={{$json.name}}"
+            },
+            {
+              "column": "role_name",
+              "value": "={{ $json.role_name }}"
+            },
+            {
+              "column": "personality",
+              "value": "={{ $json.personality }}"
+            },
+            {
+              "column": "background_story",
+              "value": "={{ $json.background_story }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        2288,
+        -32
+      ],
+      "id": "e22b2986-4231-4757-8624-4bd7c96c6564",
+      "name": "SAVE CHARACTERS",
+      "credentials": {
+        "mySql": {
+          "id": "si1FSUpsy2qIMAB3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0c6e113-d2ce-49f3-9c0f-77c88a5e75ff",
+              "name": "story_id",
+              "value": "={{ $('IF NOT EMPTY').item.json.body.story_id }}",
+              "type": "number"
+            },
+            {
+              "id": "e3958178-0c25-4c4e-b82c-5a8994d6e9e9",
+              "name": "chapter_number",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "6e92a63b-8292-45dc-b43e-06e7fda0b5c0",
+              "name": "content",
+              "value": "={{ $('If Accept Chapter?').item.json.chapter_content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4144,
+        -128
+      ],
+      "id": "74594488-426f-4d51-a8ec-4f26371ce96f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "llama-3.3-70b-versatile",
+          "mode": "list",
+          "cachedResultName": "llama-3.3-70b-versatile"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        112
+      ],
+      "id": "df1fa11c-fb18-42e5-bf07-4d5ab04f386d",
+      "name": "llama-3.3",
+      "credentials": {
+        "openAiApi": {
+          "id": "HCmyUvI5FHoVB58x",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        3312,
+        128
+      ],
+      "id": "73a6d6fa-d71e-46bc-8f9b-dc49f3678339",
+      "name": "gemini 3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sRUJqDFnY1QGPgE0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a2d3085e-21d4-4fab-8e2b-7c525bb7ae58",
+              "leftValue": "={{ $('IF NOT EMPTY').item.json.body.accept_characters }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2000,
+        -32
+      ],
+      "id": "202fd841-7412-4501-b583-2c241f643991",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "555daf6c-b350-4e5c-8e79-d1de59f3bbb1",
+              "name": "story_id",
+              "value": "={{ $('Insert documents1').item.json.story_id }}",
+              "type": "number"
+            },
+            {
+              "id": "983f0414-80ef-4c49-baf1-d56aea519172",
+              "name": "chapter_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "9131ced7-6f74-493a-b0d1-793701888507",
+              "name": "accept_chapter",
+              "value": "={{ $('IF NOT EMPTY').item.json.body.accept_chapter }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3536,
+        -32
+      ],
+      "id": "095f7d1f-7e9c-4733-8b99-8ccaa9737281",
+      "name": "SET CHAPTER PREVIEW"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2128,
+        112
+      ],
+      "id": "010e31bf-717f-499b-9dd1-74c2c4e08eb2",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"story_id\": {{ $('SET REVIEW DATA').item.json.story_id }},\n  \"outline_preview\": {{ $('SET REVIEW DATA').item.json.outline_preview }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        992,
+        144
+      ],
+      "id": "0b541b8d-1a99-4450-8322-72ba4b7562f9",
+      "name": "Return outline preview"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3888,
+        128
+      ],
+      "id": "826aa3dd-ffbd-4ffa-853c-cc19346725ec",
+      "name": "Respond Chapter Preview"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "92ebd1dc-11f4-42a3-9f9d-bb21a16859a6",
+              "leftValue": "={{ $('IF NOT EMPTY').item.json.body.accept_chapter }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3760,
+        -32
+      ],
+      "id": "4302fb53-24d6-4620-a26a-a0a29b5c1254",
+      "name": "If Accept Chapter?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chapters_index\n(\n  story_id,\n  chapter_number,\n  title,\n  status\n)\nVALUES\n(\n  {{$json.story_id}},\n  1,\n  'Chapter 1',\n  'DRAFT'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        3968,
+        -128
+      ],
+      "id": "9c8bcd71-1f9b-4bac-8f5d-58cef7ec19af",
+      "name": "SAVE CHAPTER INDEX",
+      "credentials": {
+        "mySql": {
+          "id": "si1FSUpsy2qIMAB3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "chapters_content",
+        "fields": "story_id,chapter_number,content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.3,
+      "position": [
+        4304,
+        -128
+      ],
+      "id": "641ad7dc-543d-4bb6-8d2d-de32783835a2",
+      "name": "SAVE CHAPTER_CONTENT",
+      "credentials": {
+        "mongoDb": {
+          "id": "x0Pl0DPDD3kfSNgi",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "llama-3.3-70b-versatile",
+          "mode": "list",
+          "cachedResultName": "llama-3.3-70b-versatile"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2432,
+        176
+      ],
+      "id": "c4e5d7cc-136f-472b-9733-6388e06e1c4c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "HCmyUvI5FHoVB58x",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dựa trên outline và nhân vật dưới đây,\nhãy tạo AI memory cho câu chuyện.\n\nBao gồm:\n- world_setting\n- lore\n- main_conflict\n- timeline\n- important_rules\n\nTrả về JSON.\n\nOutline:\n{{$node[\"Save Outline\"].json[\"outline_content\"]}}\n\nCharacters:\n{{ $('GENERATE CHARACTERS').item.json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2496,
+        -32
+      ],
+      "id": "d35118f5-8541-4fc7-afbc-6eaae9dee95a",
+      "name": "Generate Story Memory"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6045db16-557b-457c-af49-fe4ebfbc1372",
+              "name": "story_id",
+              "value": "={{ $('IF NOT EMPTY').item.json.body.story_id }}",
+              "type": "number"
+            },
+            {
+              "id": "08a4eddc-18a1-4fe9-abaa-179c5a860b7b",
+              "name": "memory_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2768,
+        -32
+      ],
+      "id": "ccd96458-4287-4e89-a391-30c9f67c39f5",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "story_memories",
+        "fields": "story_id,memory_content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.3,
+      "position": [
+        2976,
+        -32
+      ],
+      "id": "51406c7e-6c92-436d-94e8-1c17a2f9d57a",
+      "name": "Insert documents1",
+      "credentials": {
+        "mongoDb": {
+          "id": "x0Pl0DPDD3kfSNgi",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "29e68061-b90a-4500-8499-421ce777b031",
+              "name": "story_id",
+              "value": "={{ $json.story_id }}",
+              "type": "number"
+            },
+            {
+              "id": "3e806075-255b-474f-a9c8-b965631b26a1",
+              "name": "action",
+              "value": "GENERATE_CHAPTER",
+              "type": "string"
+            },
+            {
+              "id": "ec436409-38c2-4189-8a0f-79e7e4fb84a9",
+              "name": "created_at",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4512,
+        -128
+      ],
+      "id": "68433a8b-8467-4bb7-bb93-947092bda0d9",
+      "name": "SET FIELD AI_HISTORY"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "ai_histories",
+        "fields": "story_id,action,created_at",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.3,
+      "position": [
+        4720,
+        -128
+      ],
+      "id": "2bcc4d1b-0137-4387-b989-6e05b1ef6e69",
+      "name": "SAVE AI HISTORY",
+      "credentials": {
+        "mongoDb": {
+          "id": "x0Pl0DPDD3kfSNgi",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Story generated successfully\",\n  \"story_id\":  {{ $json.story_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4928,
+        -128
+      ],
+      "id": "859e4c3c-e68f-40c8-8d20-2e774b9aed00",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "CREATE STORY + GENERATE OUTLINE PREVIEW": [
+      {
+        "json": {
+          "body": {
+            "story_id": 7,
+            "user_id": 1,
+            "title": "Hành trình của vị vua Capybara",
+            "idea": "Một chú Capybara ở STU vô tình nhặt được bí kíp NoSQL và trở thành bá chủ giới công nghệ.",
+            "genre": "Hài hước, Hệ thống, Đô thị",
+            "accept_outline": true,
+            "accept_characters": true,
+            "accept_chapter": true
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Generate Outline": {
+      "main": [
+        [
+          {
+            "node": "IF ACCEPT OUTLINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Detail Story": {
+      "main": [
+        [
+          {
+            "node": "SET CHAPTER PREVIEW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Story": {
+      "main": [
+        [
+          {
+            "node": "Generate Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Outline": {
+      "main": [
+        [
+          {
+            "node": "GENERATE CHARACTERS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Field For Mongo": {
+      "main": [
+        [
+          {
+            "node": "Save Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini-3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Outline",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CREATE STORY + GENERATE OUTLINE PREVIEW": {
+      "main": [
+        [
+          {
+            "node": "IF NOT EMPTY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF NOT EMPTY": {
+      "main": [
+        [
+          {
+            "node": "Create Story",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF ACCEPT OUTLINE": {
+      "main": [
+        [
+          {
+            "node": "Set Field For Mongo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return outline preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GENERATE CHARACTERS": {
+      "main": [
+        [
+          {
+            "node": "PARSE CHARACTERS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PARSE CHARACTERS": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE CHARACTERS": {
+      "main": [
+        [
+          {
+            "node": "Generate Story Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "SAVE CHAPTER_CONTENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "llama-3.3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "GENERATE CHARACTERS",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini 3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Detail Story",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "SAVE CHARACTERS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SET CHAPTER PREVIEW": {
+      "main": [
+        [
+          {
+            "node": "If Accept Chapter?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Accept Chapter?": {
+      "main": [
+        [
+          {
+            "node": "SAVE CHAPTER INDEX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Chapter Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE CHAPTER INDEX": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE CHAPTER_CONTENT": {
+      "main": [
+        [
+          {
+            "node": "SET FIELD AI_HISTORY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Story Memory",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Story Memory": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Insert documents1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert documents1": {
+      "main": [
+        [
+          {
+            "node": "Generate Detail Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SET FIELD AI_HISTORY": {
+      "main": [
+        [
+          {
+            "node": "SAVE AI HISTORY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE AI HISTORY": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "929d5829-503b-4c13-af71-af80e8216976",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "808e10dff4c0f4d6de4e4410d9489a75b0f97ae48cf584b03f3cccba55251582"
+  },
+  "id": "GCztJpcCW3eylYc6",
+  "tags": []
+}
